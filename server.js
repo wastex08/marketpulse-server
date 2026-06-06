@@ -7,6 +7,9 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
+
 const VAPID_PUBLIC  = 'BJ7mqVu3GlhVulKYmRnFT8OZgCMPwvBWarO3ASRXev2gUSQWcmzgsl1ELhH1jQhIfwCsy2Npu0w59cywSkAtGUQ';
 const VAPID_PRIVATE = '_uaYQFALkREgxlJ6OyR8j1qqWM2aIOgMDki4vxfe_kE';
 
@@ -110,10 +113,7 @@ app.get('/price/:ticker', async (req, res) => {
 
 app.get('/alerts/:deviceId', (req, res) => res.json({ alerts: alerts[req.params.deviceId] || [] }));
 
-app.get('/', (req, res) => res.json({ status: 'MarketPulse server kjoerer' }));
-
-const path = require('path');
-app.use(express.static(path.join(__dirname, 'public')));
+app.get('/status', (req, res) => res.json({ status: 'MarketPulse server kjoerer' }));
 
 app.post('/test-push', async (req, res) => {
   const { deviceId } = req.body;
