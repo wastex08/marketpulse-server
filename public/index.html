@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MarketPulse">
+<meta name="theme-color" content="#00ff88">
+<link rel="manifest" href="/manifest.json">
+<title>MarketPulse Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { background:#0a0a0f; color:#e8e8f0; font-family:'Syne',sans-serif; min-height:100vh; padding-top:env(safe-area-inset-top); }
+.bg-grid {
+  position:fixed; inset:0;
+  background-image: linear-gradient(rgba(0,255,136,.03) 1px,transparent 1px), linear-gradient(90deg,rgba(0,255,136,.03) 1px,transparent 1px);
+  background-size:40px 40px; pointer-events:none; z-index:0;
+}
+.app { position:relative; z-index:1; max-width:960px; margin:0 auto; padding:24px 16px 80px; }
+
+/* HEADER */
+.top-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:10px; }
+.logo-area { display:flex; align-items:center; gap:12px; }
+.logo { width:40px; height:40px; background:linear-gradient(135deg,#00ff88,#00ccff); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+h1 { font-size:22px; font-weight:800; background:linear-gradient(90deg,#00ff88,#00ccff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.version-tag { font-size:10px; color:#444; font-family:'Space Mono',monospace; margin-top:1px; }
+.notif-btn { background:#111118; border:1.5px solid #1e1e2e; border-radius:10px; padding:9px 15px; color:#666; font-family:'Syne',sans-serif; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:7px; transition:all .2s; flex-shrink:0; }
+.notif-btn:hover { border-color:#00ff88; color:#00ff88; }
+.notif-btn.on { border-color:#00ff88; color:#00ff88; background:rgba(0,255,136,.05); }
+.ndot { width:6px; height:6px; border-radius:50%; background:#333; }
+.notif-btn.on .ndot { background:#00ff88; animation:blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* TABS */
+.tabs { display:flex; gap:4px; background:#111118; border:1px solid #1e1e2e; border-radius:12px; padding:4px; margin-bottom:24px; }
+.tab { flex:1; padding:10px 6px; text-align:center; font-size:12px; font-weight:700; cursor:pointer; border-radius:9px; transition:all .2s; color:#444; }
+.tab.active { background:linear-gradient(135deg,#00ff88,#00ccff); color:#0a0a0f; }
+
+/* PANELS */
+.panel { display:none; }
+.panel.active { display:block; animation:fadeUp .3s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+/* CARDS */
+.card { background:#111118; border:1px solid #1e1e2e; border-radius:14px; padding:20px; margin-bottom:16px; }
+
+/* INPUTS */
+.inp { background:#0a0a0f; border:1.5px solid #1e1e2e; border-radius:9px; padding:11px 13px; color:#e8e8f0; font-family:'Space Mono',monospace; font-size:13px; outline:none; width:100%; transition:border-color .2s; }
+.inp:focus { border-color:#00ff88; }
+.inp::placeholder { color:#252535; }
+.inp-group small { font-size:10px; color:#333; font-family:'Space Mono',monospace; display:block; margin-bottom:4px; }
+.inp-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+.inp-full { grid-column:span 2; }
+
+/* BUTTONS */
+.btn-green { width:100%; background:linear-gradient(135deg,#00ff88,#00ccff); border:none; border-radius:9px; padding:13px; color:#0a0a0f; font-family:'Syne',sans-serif; font-size:14px; font-weight:800; cursor:pointer; transition:opacity .2s; margin-top:4px; }
+.btn-green:disabled { opacity:.4; cursor:not-allowed; }
+.btn-green:hover { opacity:.9; }
+.btn-sm { background:#0a0a0f; border:1px solid #1e1e2e; border-radius:7px; padding:6px 12px; font-family:'Syne',sans-serif; font-size:11px; color:#555; cursor:pointer; transition:all .2s; white-space:nowrap; }
+.btn-sm:hover { border-color:#00ff88; color:#00ff88; }
+.btn-sm.del:hover { border-color:#ff4444; color:#ff4444; }
+
+/* CHIPS */
+.chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+.chip { background:#0a0a0f; border:1px solid #1e1e2e; border-radius:20px; padding:5px 12px; font-size:11px; font-family:'Space Mono',monospace; color:#555; cursor:pointer; transition:all .2s; }
+.chip:hover { border-color:#00ff88; color:#00ff88; }
+
+/* SERVER STATUS */
+.server-status { display:flex; align-items:center; gap:7px; font-size:11px; font-family:'Space Mono',monospace; color:#444; margin-bottom:16px; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:#444; }
+.status-dot.ok { background:#00ff88; animation:blink 3s infinite; }
+.status-dot.err { background:#ff4444; }
+
+/* WATCHLIST CARDS */
+.stock-card { background:#111118; border:1px solid #1e1e2e; border-radius:13px; padding:16px; transition:border-color .2s; margin-bottom:10px; }
+.stock-card.alert-on { border-color:rgba(255,200,0,.2); }
+.stock-card.triggered-up { border-color:rgba(0,255,136,.4); background:rgba(0,255,136,.025); }
+.stock-card.triggered-down { border-color:rgba(255,68,68,.4); background:rgba(255,68,68,.025); }
+.sc-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.sc-badges { display:flex; align-items:center; gap:7px; margin-bottom:6px; flex-wrap:wrap; }
+.ticker-tag { background:linear-gradient(135deg,#00ff88,#00ccff); color:#0a0a0f; font-family:'Space Mono',monospace; font-weight:700; font-size:11px; padding:2px 8px; border-radius:5px; letter-spacing:1px; }
+.company-nm { font-size:14px; font-weight:700; }
+.price-row { display:flex; align-items:baseline; gap:8px; margin-bottom:6px; }
+.live-price { font-size:24px; font-weight:800; font-family:'Space Mono',monospace; }
+.pct-change { font-size:12px; font-family:'Space Mono',monospace; font-weight:700; }
+.pct-change.up { color:#00ff88; }
+.pct-change.down { color:#ff4444; }
+.alert-row { display:flex; gap:6px; flex-wrap:wrap; }
+.alert-tag { font-size:10px; padding:2px 9px; border-radius:20px; font-weight:600; font-family:'Space Mono',monospace; }
+.alert-tag.up-tag { background:rgba(0,255,136,.08); color:#00bb66; }
+.alert-tag.up-tag.hit { background:rgba(0,255,136,.2); color:#00ff88; }
+.alert-tag.dn-tag { background:rgba(255,68,68,.08); color:#cc3333; }
+.alert-tag.dn-tag.hit { background:rgba(255,68,68,.2); color:#ff4444; }
+.sc-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
+.updated-txt { font-size:10px; color:#252535; font-family:'Space Mono',monospace; }
+.empty-state { text-align:center; padding:50px 20px; color:#2a2a3a; }
+.empty-state .eicon { font-size:38px; margin-bottom:10px; }
+.empty-state p { font-size:13px; line-height:1.7; }
+
+/* ═══════════ NEWS PANEL STYLES ═══════════ */
+.field-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#00ff88; font-weight:600; margin-bottom:12px; display:block; }
+
+/* NEWS TICKER LIST */
+.news-ticker-list { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; max-height:280px; overflow-y:auto; padding-right:4px; }
+.news-ticker-list::-webkit-scrollbar { width:4px; }
+.news-ticker-list::-webkit-scrollbar-track { background:#0a0a0f; }
+.news-ticker-list::-webkit-scrollbar-thumb { background:#1e1e2e; border-radius:2px; }
+
+.nticker-item {
+  display:flex; align-items:center; justify-content:space-between;
+  background:#0a0a0f; border:1px solid #1e1e2e; border-radius:9px;
+  padding:10px 14px; transition:border-color .2s;
+}
+.nticker-item:hover { border-color:#252535; }
+.nticker-item.selected { border-color:rgba(0,255,136,.4); background:rgba(0,255,136,.03); }
+.nticker-left { display:flex; align-items:center; gap:10px; }
+.nticker-badge { background:linear-gradient(135deg,#00ff88,#00ccff); color:#0a0a0f; font-family:'Space Mono',monospace; font-weight:700; font-size:11px; padding:2px 8px; border-radius:5px; letter-spacing:1px; min-width:52px; text-align:center; }
+.nticker-name { font-size:13px; font-weight:600; color:#e8e8f0; }
+.nticker-right { display:flex; align-items:center; gap:8px; }
+.nticker-checkbox {
+  width:20px; height:20px; border-radius:5px; border:1.5px solid #252535;
+  background:#0a0a0f; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .2s; flex-shrink:0; font-size:11px;
+}
+.nticker-checkbox.checked { background:rgba(0,255,136,.15); border-color:#00ff88; color:#00ff88; }
+.btn-remove-ticker { background:none; border:none; color:#333; font-size:14px; cursor:pointer; padding:2px 4px; transition:color .2s; }
+.btn-remove-ticker:hover { color:#ff4444; }
+
+/* ADD TO NEWS LIST */
+.add-news-row { display:flex; gap:8px; }
+.add-news-btn { background:linear-gradient(135deg,#00ff88,#00ccff); border:none; border-radius:9px; padding:11px 18px; color:#0a0a0f; font-family:'Syne',sans-serif; font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap; transition:opacity .2s; flex-shrink:0; }
+.add-news-btn:hover { opacity:.9; }
+
+/* FETCH NEWS BUTTON */
+.fetch-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:4px; }
+.selected-count { font-size:11px; color:#555; font-family:'Space Mono',monospace; }
+.fetch-btn { background:linear-gradient(135deg,#7850ff,#00ccff); border:none; border-radius:9px; padding:11px 22px; color:#fff; font-family:'Syne',sans-serif; font-size:13px; font-weight:800; cursor:pointer; transition:opacity .2s; white-space:nowrap; }
+.fetch-btn:disabled { opacity:.4; cursor:not-allowed; }
+.fetch-btn:hover { opacity:.9; }
+
+/* NEWS RESULTS */
+.sec-title { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#3a3a5a; font-weight:600; margin:20px 0 12px; display:flex; align-items:center; gap:8px; }
+.sec-title::after { content:''; flex:1; height:1px; background:#151525; }
+.ai-block { background:linear-gradient(135deg,#0d1f16,#0d1820); border:1px solid rgba(0,255,136,.15); border-left:3px solid #00ff88; border-radius:12px; padding:18px; margin-bottom:12px; }
+.ai-lbl { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#00ff88; font-weight:600; display:flex; align-items:center; gap:5px; margin-bottom:8px; }
+.ai-lbl::before { content:''; width:5px; height:5px; background:#00ff88; border-radius:50%; animation:blink 2s infinite; }
+.ai-txt { font-size:13px; line-height:1.75; color:#a0b8a8; }
+.pred-block { background:linear-gradient(135deg,#0d0d20,#100d1f); border:1px solid rgba(120,80,255,.2); border-left:3px solid #7850ff; border-radius:12px; padding:18px; margin-bottom:12px; }
+.pred-lbl { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#a07aff; font-weight:600; margin-bottom:8px; }
+.pred-txt { font-size:13px; line-height:1.75; color:#a0a0cc; }
+.pred-tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+.pred-tag { font-size:10px; padding:3px 10px; border-radius:20px; font-weight:600; }
+.bull { background:rgba(0,255,136,.1); color:#00ff88; }
+.bear { background:rgba(255,68,68,.1); color:#ff4444; }
+.ntag { background:rgba(255,255,255,.05); color:#666; }
+.news-grid { display:grid; gap:10px; }
+.nc { background:#111118; border:1px solid #1e1e2e; border-radius:11px; padding:15px; transition:border-color .2s; }
+.nc:hover { border-color:rgba(0,255,136,.2); }
+.nc-ticker { display:inline-block; background:rgba(0,200,255,.1); color:#00ccff; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; padding:1px 7px; border-radius:4px; margin-bottom:7px; }
+.nc-meta { display:flex; justify-content:space-between; margin-bottom:6px; }
+.nc-src { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#00ccff; font-family:'Space Mono',monospace; }
+.nc-time { font-size:10px; color:#2a2a3a; font-family:'Space Mono',monospace; }
+.nc-title { font-size:13px; font-weight:700; line-height:1.5; margin-bottom:6px; }
+.nc-sum { font-size:12px; line-height:1.6; color:#444; }
+.nc-sent { display:inline-block; margin-top:7px; font-size:10px; padding:2px 9px; border-radius:20px; font-weight:600; }
+.nc-sent.positive { background:rgba(0,255,136,.1); color:#00ff88; }
+.nc-sent.negative { background:rgba(255,68,68,.1); color:#ff4444; }
+.nc-sent.neutral { background:rgba(255,255,255,.04); color:#666; }
+
+/* COMPANY SECTION DIVIDER */
+.company-section { margin-bottom:28px; }
+.company-section-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.company-section-tag { background:linear-gradient(135deg,#00ff88,#00ccff); color:#0a0a0f; font-family:'Space Mono',monospace; font-weight:700; font-size:12px; padding:3px 10px; border-radius:6px; }
+.company-section-name { font-size:15px; font-weight:800; }
+
+/* LOADING */
+.ld { display:none; text-align:center; padding:40px; }
+.spin { width:28px; height:28px; border:2px solid #1e1e2e; border-top-color:#00ff88; border-radius:50%; animation:spin .7s linear infinite; margin:0 auto 12px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.ld-txt { font-family:'Space Mono',monospace; font-size:11px; color:#333; letter-spacing:1px; }
+
+/* TOASTS */
+.toasts { position:fixed; top:calc(16px + env(safe-area-inset-top)); right:12px; left:12px; z-index:9999; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+.toast { background:#111118; border:1px solid #1e1e2e; border-radius:11px; padding:12px 15px; box-shadow:0 8px 24px rgba(0,0,0,.7); display:flex; align-items:flex-start; gap:10px; animation:toastIn .25s ease; pointer-events:all; max-width:400px; margin-left:auto; }
+.toast.g { border-color:rgba(0,255,136,.35); }
+.toast.y { border-color:rgba(255,200,0,.35); }
+.toast.r { border-color:rgba(255,68,68,.35); }
+@keyframes toastIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+.t-icon { font-size:16px; }
+.t-title { font-size:12px; font-weight:700; margin-bottom:2px; }
+.t-msg { font-size:11px; color:#555; font-family:'Space Mono',monospace; }
+
+.footer { font-size:10px; color:#1e1e2e; font-family:'Space Mono',monospace; text-align:center; margin-top:32px; line-height:1.8; }
+
+@media(max-width:500px) {
+  .inp-grid { grid-template-columns:1fr; }
+  .inp-full { grid-column:span 1; }
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="toasts" id="toasts"></div>
+
+<div class="app">
+  <div class="top-bar">
+    <div class="logo-area">
+      <div class="logo">📊</div>
+      <div>
+        <h1>MarketPulse Pro</h1>
+        <div class="version-tag">// Live priser · Push-varsler · AI</div>
+      </div>
+    </div>
+    <button class="notif-btn" id="notifBtn" onclick="setupPush()">
+      <span class="ndot"></span>
+      <span id="notifLbl">Aktiver varsler</span>
+    </button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('watch',this)">📋 Bevakningsliste</div>
+    <div class="tab" onclick="switchTab('news',this)">📰 Nyheter & AI</div>
+  </div>
+
+  <!-- ═══════════ WATCHLIST ═══════════ -->
+  <div class="panel active" id="panel-watch">
+    <div class="server-status">
+      <span class="status-dot" id="sDot"></span>
+      <span id="sText">Sjekker serverforbindelse…</span>
+    </div>
+
+    <div class="card">
+      <span class="field-label">Legg til aksje i bevakningsliste</span>
+      <div class="inp-grid">
+        <div class="inp-group inp-full">
+          <small>TICKER / SELSKAP</small>
+          <input class="inp" id="wTick" placeholder="AAPL, TSLA, NVDA, EQNR…" />
+        </div>
+        <div class="inp-group">
+          <small>VARSLE NÅR OVER ($)</small>
+          <input class="inp" id="wUp" type="number" placeholder="200" />
+        </div>
+        <div class="inp-group">
+          <small>VARSLE NÅR UNDER ($)</small>
+          <input class="inp" id="wDn" type="number" placeholder="150" />
+        </div>
+      </div>
+      <button class="btn-green" id="addBtn" onclick="addStock()">+ Legg til i bevakningsliste</button>
+      <div class="chips">
+        <div class="chip" onclick="qa('AAPL')">AAPL</div>
+        <div class="chip" onclick="qa('TSLA')">TSLA</div>
+        <div class="chip" onclick="qa('NVDA')">NVDA</div>
+        <div class="chip" onclick="qa('EQNR')">EQNR</div>
+        <div class="chip" onclick="qa('MSFT')">MSFT</div>
+        <div class="chip" onclick="qa('META')">META</div>
+        <div class="chip" onclick="qa('AMZN')">AMZN</div>
+        <div class="chip" onclick="qa('AMD')">AMD</div>
+      </div>
+    </div>
+
+    <div id="wList"></div>
+    <div class="empty-state" id="emptyState">
+      <div class="eicon">📈</div>
+      <p>Ingen aksjer lagt til ennå.<br>Søk opp en aksje eller bruk hurtigvalgene over.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ NEWS PANEL ═══════════ -->
+  <div class="panel" id="panel-news">
+
+    <!-- AKSJELISTE -->
+    <div class="card">
+      <span class="field-label">Din aksjeliste for nyheter</span>
+
+      <!-- Legg til ny -->
+      <div class="add-news-row" style="margin-bottom:14px;">
+        <input class="inp" id="nAddTick" placeholder="Legg til ticker (f.eks. TSLA, EQNR…)" />
+        <button class="add-news-btn" onclick="addNewsTicker()">+ Legg til</button>
+      </div>
+
+      <!-- Liste over aksjer -->
+      <div class="news-ticker-list" id="newsTickerList">
+        <!-- fylles av JS -->
+      </div>
+
+      <div id="newsListEmpty" style="text-align:center;padding:20px;color:#2a2a3a;font-size:13px;display:none;">
+        Ingen aksjer lagt til ennå. Legg til noen over!
+      </div>
+
+      <!-- Hurtigvalg -->
+      <div class="chips">
+        <div class="chip" onclick="quickAddNews('AAPL')">+ AAPL</div>
+        <div class="chip" onclick="quickAddNews('TSLA')">+ TSLA</div>
+        <div class="chip" onclick="quickAddNews('NVDA')">+ NVDA</div>
+        <div class="chip" onclick="quickAddNews('EQNR')">+ EQNR</div>
+        <div class="chip" onclick="quickAddNews('MSFT')">+ MSFT</div>
+        <div class="chip" onclick="quickAddNews('META')">+ META</div>
+        <div class="chip" onclick="quickAddNews('AMZN')">+ AMZN</div>
+        <div class="chip" onclick="quickAddNews('AMD')">+ AMD</div>
+        <div class="chip" onclick="quickAddNews('NFLX')">+ NFLX</div>
+        <div class="chip" onclick="quickAddNews('GOOG')">+ GOOG</div>
+      </div>
+    </div>
+
+    <!-- HENT NYHETER -->
+    <div class="fetch-row">
+      <div class="selected-count" id="selectedCount">0 aksjer valgt</div>
+      <button class="fetch-btn" id="fetchBtn" onclick="fetchAllNews()">📰 Hent nyheter for valgte →</button>
+    </div>
+
+    <div class="ld" id="nLoading">
+      <div class="spin"></div>
+      <div class="ld-txt" id="loadingTxt">Analyserer markedet…</div>
+    </div>
+
+    <div id="nResults"></div>
+  </div>
+
+  <div class="footer">⚠ Simulerte priser · AI-genererte nyheter · Ikke finansiell rådgivning</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+const SERVER_URL = 'https://DIN-APP.onrender.com';
+let VAPID_KEY = null;
+let pushSubscription = null;
+let deviceId = localStorage.getItem('mpDeviceId') || (() => {
+  const id = 'dev_' + Math.random().toString(36).slice(2,10);
+  localStorage.setItem('mpDeviceId', id); return id;
+})();
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let watchlist   = JSON.parse(localStorage.getItem('mpWatchlist')    || '[]');
+let newsTickers = JSON.parse(localStorage.getItem('mpNewsTickers')  || '[]');
+// newsTickers: [ { ticker, name, selected } ]
+
+let priceCache  = {};
+let serverOnline = false;
+let priceTimer  = null;
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function toast(icon, title, msg, type='g', ms=4000) {
+  const c = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<div class="t-icon">${icon}</div><div><div class="t-title">${title}</div><div class="t-msg">${msg}</div></div>`;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+
+// ══════════════════════════════════════════════
+// SERVER CHECK
+// ══════════════════════════════════════════════
+async function checkServer() {
+  const dot = document.getElementById('sDot');
+  const txt = document.getElementById('sText');
+  try {
+    const r = await fetch(SERVER_URL + '/', { signal: AbortSignal.timeout(4000) });
+    if (r.ok) {
+      serverOnline = true;
+      dot.className = 'status-dot ok';
+      txt.textContent = 'Server tilkoblet – live priser aktive';
+      const vr = await fetch(SERVER_URL + '/vapid-key');
+      const vd = await vr.json();
+      VAPID_KEY = vd.publicKey;
+    }
+  } catch {
+    serverOnline = false;
+    dot.className = 'status-dot err';
+    txt.textContent = 'Server ikke koblet til – bruker simulerte priser';
+  }
+}
+
+// ══════════════════════════════════════════════
+// PUSH NOTIFICATIONS
+// ══════════════════════════════════════════════
+function urlB64ToUint8(b) {
+  const pad = '='.repeat((4 - b.length % 4) % 4);
+  const raw = atob((b + pad).replace(/-/g,'+').replace(/_/g,'/'));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function setupPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    toast('❌','Ikke støttet','Push-varsler støttes ikke i denne nettleseren.','r'); return;
+  }
+  if (!serverOnline) {
+    toast('⚠️','Server ikke koblet til','Sett opp serveren først.','y'); return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') {
+    toast('❌','Tilgang nektet','Gå til nettleserinnstillinger og tillat varsler.','r'); return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(VAPID_KEY) });
+    pushSubscription = sub;
+    await fetch(SERVER_URL + '/subscribe', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ deviceId, subscription: sub.toJSON() }) });
+    updateNotifBtn(true);
+    localStorage.setItem('mpPushOn', '1');
+    toast('✅','Varsler aktivert!','Du får push-varsler når priser treffer grensene dine! 🚀','g', 6000);
+  } catch(e) {
+    toast('❌','Push feilet', e.message,'r');
+  }
+}
+
+function updateNotifBtn(on) {
+  const btn = document.getElementById('notifBtn');
+  const lbl = document.getElementById('notifLbl');
+  if (on) { btn.classList.add('on'); lbl.textContent = 'Varsler på 🔔'; }
+  else { btn.classList.remove('on'); lbl.textContent = 'Aktiver varsler'; }
+}
+
+// ══════════════════════════════════════════════
+// PRICE SIMULATION
+// ══════════════════════════════════════════════
+const basePx = { AAPL:196.5,TSLA:248.3,NVDA:134.7,MSFT:420.1,AMZN:198.6,GOOG:178.4,META:498.2,EQNR:27.8,AMD:162.4,NFLX:651.2,INTC:30.7,DIS:103.5 };
+const simPx = {};
+
+function simPrice(t) {
+  if (!simPx[t]) simPx[t] = basePx[t] || (50 + Math.random()*300);
+  simPx[t] = parseFloat((simPx[t] * (1 + (Math.random()-.499)*.014)).toFixed(2));
+  return simPx[t];
+}
+
+async function fetchPrice(ticker) {
+  if (serverOnline) {
+    try {
+      const r = await fetch(`${SERVER_URL}/price/${ticker}`, { signal: AbortSignal.timeout(5000) });
+      const d = await r.json();
+      if (d.price && d.price > 0) { priceCache[ticker] = d; return d; }
+    } catch {}
+  }
+  const p = simPrice(ticker);
+  const base = basePx[ticker] || simPx[ticker];
+  const pct = ((p - base) / base * 100);
+  return { price: p, changePct: pct, change: p - base };
+}
+
+// ══════════════════════════════════════════════
+// WATCHLIST
+// ══════════════════════════════════════════════
+function saveWL() { localStorage.setItem('mpWatchlist', JSON.stringify(watchlist)); }
+function qa(ticker) { document.getElementById('wTick').value = ticker; document.getElementById('wTick').focus(); }
+
+async function addStock() {
+  const ticker = document.getElementById('wTick').value.trim().toUpperCase().replace(/[^A-Z]/g,'');
+  if (!ticker) { toast('⚠️','Skriv inn en ticker','f.eks. AAPL eller TSLA','y'); return; }
+  if (watchlist.find(s => s.ticker === ticker)) { toast('ℹ️','Allerede lagt til',`${ticker} er allerede i listen.`,'y'); return; }
+  const btn = document.getElementById('addBtn');
+  btn.disabled = true; btn.textContent = 'Henter…';
+  const alertUp   = parseFloat(document.getElementById('wUp').value)  || null;
+  const alertDown = parseFloat(document.getElementById('wDn').value) || null;
+
+  let name = ticker;
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:80, messages:[{role:'user',content:`Full company name for stock ticker "${ticker}"? Reply with ONLY the name, nothing else.`}] }) });
+    const d = await r.json();
+    name = (d.content?.[0]?.text || ticker).trim().split('\n')[0];
+  } catch {}
+
+  const entry = { ticker, name, alertUp, alertDown, tUp:false, tDown:false };
+  watchlist.push(entry);
+  saveWL();
+  document.getElementById('wTick').value = '';
+  document.getElementById('wUp').value = '';
+  document.getElementById('wDn').value = '';
+  btn.disabled = false; btn.textContent = '+ Legg til i bevakningsliste';
+  renderWL(); startPolling();
+  toast('📈', `${name} lagt til!`, alertUp||alertDown ? `Varsler: ${alertUp?'↑$'+alertUp:''} ${alertDown?'↓$'+alertDown:''}`.trim() : 'Følger nå prisbevegelser.','g');
+}
+
+function removeStock(ticker) {
+  watchlist = watchlist.filter(s => s.ticker !== ticker);
+  saveWL();
+  if (serverOnline) fetch(`${SERVER_URL}/alerts/${deviceId}/${ticker}`, { method:'DELETE' }).catch(()=>{});
+  renderWL();
+  toast('🗑️','Fjernet',`${ticker} er fjernet.`,'y');
+}
+
+function renderWL() {
+  const c = document.getElementById('wList');
+  const e = document.getElementById('emptyState');
+  if (watchlist.length === 0) { c.innerHTML = ''; e.style.display = 'block'; return; }
+  e.style.display = 'none';
+  c.innerHTML = watchlist.map(s => {
+    const pd = priceCache[s.ticker] || { price: simPx[s.ticker] || basePx[s.ticker] || 0, changePct: 0 };
+    const price = pd.price || 0;
+    const pct = pd.changePct || 0;
+    const dir = pct >= 0 ? 'up' : 'down';
+    const arrow = pct >= 0 ? '▲' : '▼';
+    let alerts = '';
+    if (s.alertUp)   alerts += `<span class="alert-tag up-tag ${s.tUp?'hit':''}">🎯 ↑$${s.alertUp}${s.tUp?' ✓':''}</span>`;
+    if (s.alertDown) alerts += `<span class="alert-tag dn-tag ${s.tDown?'hit':''}">⚡ ↓$${s.alertDown}${s.tDown?' ✓':''}</span>`;
+    const cls = s.tUp ? 'triggered-up' : s.tDown ? 'triggered-down' : (s.alertUp||s.alertDown) ? 'alert-on' : '';
+    return `
+    <div class="stock-card ${cls}" id="sc-${s.ticker}">
+      <div class="sc-top">
+        <div>
+          <div class="sc-badges"><span class="ticker-tag">${s.ticker}</span><span class="company-nm">${s.name}</span></div>
+          <div class="price-row">
+            <span class="live-price" id="px-${s.ticker}">$${price.toFixed(2)}</span>
+            <span class="pct-change ${dir}" id="pct-${s.ticker}">${arrow} ${Math.abs(pct).toFixed(2)}%</span>
+          </div>
+          ${alerts ? `<div class="alert-row">${alerts}</div>` : ''}
+          <div class="updated-txt" id="upd-${s.ticker}">Oppdateres snart…</div>
+        </div>
+        <div class="sc-right">
+          <button class="btn-sm" onclick="goToNews('${s.ticker}','${s.name}')">📰 Nyheter</button>
+          <button class="btn-sm del" onclick="removeStock('${s.ticker}')">✕ Fjern</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function goToNews(ticker, name) {
+  // Ensure ticker is in news list and selected
+  if (!newsTickers.find(t => t.ticker === ticker)) {
+    newsTickers.push({ ticker, name, selected: true });
+    saveNewsTickers();
+  } else {
+    const t = newsTickers.find(t => t.ticker === ticker);
+    t.selected = true;
+    saveNewsTickers();
+  }
+  renderNewsTickers();
+  const tabs = document.querySelectorAll('.tab');
+  switchTab('news', tabs[1]);
+  fetchAllNews();
+}
+
+// ══════════════════════════════════════════════
+// PRICE POLLING
+// ══════════════════════════════════════════════
+function startPolling() {
+  if (priceTimer || watchlist.length === 0) return;
+  priceTimer = setInterval(updatePrices, 15000);
+  updatePrices();
+}
+
+async function updatePrices() {
+  for (const s of watchlist) {
+    const pd = await fetchPrice(s.ticker);
+    if (!pd || !pd.price) continue;
+    priceCache[s.ticker] = pd;
+    const price = pd.price;
+    const pct = pd.changePct || 0;
+    const dir = pct >= 0 ? 'up' : 'down';
+    const arrow = pct >= 0 ? '▲' : '▼';
+    const pxEl  = document.getElementById('px-'  + s.ticker);
+    const pctEl = document.getElementById('pct-' + s.ticker);
+    const updEl = document.getElementById('upd-' + s.ticker);
+    if (pxEl)  pxEl.textContent  = '$' + price.toFixed(2);
+    if (pctEl) { pctEl.textContent = arrow + ' ' + Math.abs(pct).toFixed(2) + '%'; pctEl.className = `pct-change ${dir}`; }
+    if (updEl) updEl.textContent  = 'Oppdatert: ' + new Date().toLocaleTimeString('no-NO');
+    if (!serverOnline) {
+      if (s.alertUp && price >= s.alertUp && !s.tUp) {
+        s.tUp = true; saveWL();
+        notifyUser(`🚀 ${s.ticker} nådde $${s.alertUp}!`, `Nåværende pris: $${price.toFixed(2)}`);
+        renderWL();
+      }
+      if (s.alertDown && price <= s.alertDown && !s.tDown) {
+        s.tDown = true; saveWL();
+        notifyUser(`⚠️ ${s.ticker} falt under $${s.alertDown}`, `Nåværende pris: $${price.toFixed(2)}`);
+        renderWL();
+      }
+      if (s.alertUp   && price < s.alertUp   * 0.995) s.tUp   = false;
+      if (s.alertDown && price > s.alertDown * 1.005) s.tDown = false;
+    }
+  }
+}
+
+function notifyUser(title, body) {
+  if (Notification.permission === 'granted') new Notification(title, { body });
+  else toast('🔔', title, body, 'g', 7000);
+}
+
+// ══════════════════════════════════════════════
+// NEWS TICKER LIST
+// ══════════════════════════════════════════════
+function saveNewsTickers() {
+  localStorage.setItem('mpNewsTickers', JSON.stringify(newsTickers));
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  const sel = newsTickers.filter(t => t.selected).length;
+  document.getElementById('selectedCount').textContent = `${sel} aksje${sel !== 1 ? 'r' : ''} valgt`;
+}
+
+async function addNewsTicker() {
+  const raw = document.getElementById('nAddTick').value.trim().toUpperCase().replace(/[^A-Z]/g,'');
+  if (!raw) return;
+  if (newsTickers.find(t => t.ticker === raw)) {
+    toast('ℹ️','Allerede i listen',`${raw} er allerede lagt til.`,'y'); return;
+  }
+  document.getElementById('nAddTick').value = '';
+
+  let name = raw;
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:80, messages:[{role:'user',content:`Full company name for stock ticker "${raw}"? Reply with ONLY the name.`}] }) });
+    const d = await r.json();
+    name = (d.content?.[0]?.text || raw).trim().split('\n')[0];
+  } catch {}
+
+  newsTickers.push({ ticker: raw, name, selected: true });
+  saveNewsTickers();
+  renderNewsTickers();
+  toast('✅', `${name} lagt til!`, 'Nå valgt for nyheter.', 'g');
+}
+
+function quickAddNews(ticker) {
+  document.getElementById('nAddTick').value = ticker;
+  addNewsTicker();
+}
+
+function removeNewsTicker(ticker) {
+  newsTickers = newsTickers.filter(t => t.ticker !== ticker);
+  saveNewsTickers();
+  renderNewsTickers();
+}
+
+function toggleNewsSelect(ticker) {
+  const t = newsTickers.find(x => x.ticker === ticker);
+  if (t) { t.selected = !t.selected; saveNewsTickers(); renderNewsTickers(); }
+}
+
+function renderNewsTickers() {
+  const list  = document.getElementById('newsTickerList');
+  const empty = document.getElementById('newsListEmpty');
+  if (newsTickers.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = newsTickers.map(t => `
+    <div class="nticker-item ${t.selected ? 'selected' : ''}">
+      <div class="nticker-left">
+        <div class="nticker-badge">${t.ticker}</div>
+        <div class="nticker-name">${t.name}</div>
+      </div>
+      <div class="nticker-right">
+        <div class="nticker-checkbox ${t.selected ? 'checked' : ''}" onclick="toggleNewsSelect('${t.ticker}')" title="${t.selected ? 'Fjern fra nyheter' : 'Legg til i nyheter'}">
+          ${t.selected ? '✓' : ''}
+        </div>
+        <button class="btn-remove-ticker" onclick="removeNewsTicker('${t.ticker}')" title="Slett fra liste">✕</button>
+      </div>
+    </div>`).join('');
+  updateSelectedCount();
+}
+
+// ══════════════════════════════════════════════
+// FETCH NEWS FOR ALL SELECTED TICKERS
+// ══════════════════════════════════════════════
+function timeAgo(d) {
+  const diff = Math.floor((Date.now() - new Date(d)) / 60000);
+  if (diff < 60) return diff + 'm siden';
+  if (diff < 1440) return Math.floor(diff/60) + 't siden';
+  return Math.floor(diff/1440) + 'd siden';
+}
+
+async function fetchAllNews() {
+  const selected = newsTickers.filter(t => t.selected);
+  if (selected.length === 0) {
+    toast('⚠️','Ingen valgt','Huk av minst én aksje i listen.','y'); return;
+  }
+
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  document.getElementById('nResults').innerHTML = '';
+  document.getElementById('nLoading').style.display = 'block';
+
+  const results = [];
+
+  for (let i = 0; i < selected.length; i++) {
+    const t = selected[i];
+    document.getElementById('loadingTxt').textContent = `Analyserer ${t.ticker} (${i+1}/${selected.length})…`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model:'claude-sonnet-4-20250514', max_tokens:1200,
+          messages:[{ role:'user', content:
+`Du er senior finansanalytiker. Gi nyheter og analyse for: "${t.name}" (${t.ticker}).
+
+Svar KUN med rent JSON (ingen markdown, ingen tekst utenfor JSON):
+{
+  "company": "${t.name}",
+  "ticker": "${t.ticker}",
+  "currentSituation": "2 setninger norsk om markedssituasjon.",
+  "priceOutlook": "2-3 setninger norsk om mulig prisutvikling.",
+  "signals": ["BULL: årsak","BEAR: årsak"],
+  "news": [
+    {"title":"Overskrift","source":"Kilde","time":"ISO innenfor siste 48t fra ${new Date().toISOString()}","summary":"1-2 setninger norsk","sentiment":"positive|negative|neutral"}
+  ]
+}
+Lag 3 realistiske nyheter.` }]
+        })
+      });
+      const data = await res.json();
+      const raw = (data.content||[]).map(b=>b.text||'').join('');
+      const p = JSON.parse(raw.replace(/```json|```/g,'').trim());
+      results.push(p);
+    } catch(e) {
+      results.push({ ticker: t.ticker, company: t.name, error: true });
+    }
+  }
+
+  document.getElementById('nLoading').style.display = 'none';
+  btn.disabled = false;
+
+  // Render results
+  const container = document.getElementById('nResults');
+  container.innerHTML = results.map(p => {
+    if (p.error) return `<div class="card" style="color:#ff4444;font-size:13px;">Kunne ikke hente data for ${p.ticker}</div>`;
+    return `
+    <div class="company-section">
+      <div class="company-section-header">
+        <span class="company-section-tag">${p.ticker}</span>
+        <span class="company-section-name">${p.company}</span>
+      </div>
+
+      <div class="ai-block">
+        <div class="ai-lbl">Markedsanalyse</div>
+        <div class="ai-txt">${p.currentSituation}</div>
+      </div>
+
+      <div class="pred-block">
+        <div class="pred-lbl">📈 Prisutsikter</div>
+        <div class="pred-txt">${p.priceOutlook}</div>
+        <div class="pred-tags">
+          ${(p.signals||[]).map(s => {
+            const cls = s.startsWith('BULL')?'bull':s.startsWith('BEAR')?'bear':'ntag';
+            return `<span class="pred-tag ${cls}">${s}</span>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="news-grid">
+        ${(p.news||[]).map(n => `
+        <div class="nc">
+          <div class="nc-meta">
+            <span class="nc-src">${n.source}</span>
+            <span class="nc-time">${timeAgo(n.time)}</span>
+          </div>
+          <div class="nc-title">${n.title}</div>
+          <div class="nc-sum">${n.summary}</div>
+          <span class="nc-sent ${n.sentiment}">${n.sentiment==='positive'?'↑ Positiv':n.sentiment==='negative'?'↓ Negativ':'→ Nøytral'}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('<div style="height:1px;background:#151525;margin:24px 0;"></div>');
+}
+
+// ══════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+document.getElementById('wTick').addEventListener('keydown',   e => { if(e.key==='Enter') addStock(); });
+document.getElementById('nAddTick').addEventListener('keydown', e => { if(e.key==='Enter') addNewsTicker(); });
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+}
+if (localStorage.getItem('mpPushOn')) updateNotifBtn(true);
+
+// Seed prices
+watchlist.forEach(s => { simPx[s.ticker] = basePx[s.ticker] || 100; });
+
+renderWL();
+renderNewsTickers();
+checkServer().then(() => {
+  if (watchlist.length > 0) startPolling();
+});
+</script>
+</body>
+</html>
