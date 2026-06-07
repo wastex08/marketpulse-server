@@ -462,9 +462,9 @@ async function addStock() {
 
   let name = ticker;
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:80, messages:[{role:'user',content:`Full company name for stock ticker "${ticker}"? Reply with ONLY the name, nothing else.`}] }) });
+    const r = await fetch(SERVER_URL + '/ai-name', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ticker }) });
     const d = await r.json();
-    name = (d.content?.[0]?.text || ticker).trim().split('\n')[0];
+    name = (d.name || ticker).trim();
   } catch {}
 
   const entry = { ticker, name, alertUp, alertDown, tUp:false, tDown:false };
@@ -607,9 +607,9 @@ async function addNewsTicker() {
 
   let name = raw;
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:80, messages:[{role:'user',content:`Full company name for stock ticker "${raw}"? Reply with ONLY the name.`}] }) });
+    const r = await fetch(SERVER_URL + '/ai-name', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ticker: raw }) });
     const d = await r.json();
-    name = (d.content?.[0]?.text || raw).trim().split('\n')[0];
+    name = (d.name || raw).trim();
   } catch {}
 
   newsTickers.push({ ticker: raw, name, selected: true });
@@ -687,30 +687,11 @@ async function fetchAllNews() {
     document.getElementById('loadingTxt').textContent = `Analyserer ${t.ticker} (${i+1}/${selected.length})…`;
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch(SERVER_URL + '/ai-news', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          model:'claude-sonnet-4-20250514', max_tokens:1200,
-          messages:[{ role:'user', content:
-`Du er senior finansanalytiker. Gi nyheter og analyse for: "${t.name}" (${t.ticker}).
-
-Svar KUN med rent JSON (ingen markdown, ingen tekst utenfor JSON):
-{
-  "company": "${t.name}",
-  "ticker": "${t.ticker}",
-  "currentSituation": "2 setninger norsk om markedssituasjon.",
-  "priceOutlook": "2-3 setninger norsk om mulig prisutvikling.",
-  "signals": ["BULL: årsak","BEAR: årsak"],
-  "news": [
-    {"title":"Overskrift","source":"Kilde","time":"ISO innenfor siste 48t fra ${new Date().toISOString()}","summary":"1-2 setninger norsk","sentiment":"positive|negative|neutral"}
-  ]
-}
-Lag 3 realistiske nyheter.` }]
-        })
+        body: JSON.stringify({ ticker: t.ticker, company: t.name })
       });
-      const data = await res.json();
-      const raw = (data.content||[]).map(b=>b.text||'').join('');
-      const p = JSON.parse(raw.replace(/```json|```/g,'').trim());
+      const p = await res.json();
       results.push(p);
     } catch(e) {
       results.push({ ticker: t.ticker, company: t.name, error: true });
